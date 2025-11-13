@@ -11,8 +11,8 @@ TagManager:
   - Player
   - Water
   - UI
-  - 
-  - 
+  - Button
+  - Enemy
   - 
   - 
   - 
@@ -38,8 +38,17 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: Flor
+    uniqueID: 256397427
+    locked: 0
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Wall
+    uniqueID: 1198614069
+    locked: 0
+  - name: Grass
+    uniqueID: 750044597
     locked: 0
   - name: Shadow
     uniqueID: 2827227595

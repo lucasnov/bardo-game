@@ -43,6 +43,13 @@ public class playerMovement : MonoBehaviour
         {
             animator.SetBool("isRunning", false);
         }
+
+        // Skill area Q
+        if (Input.GetKeyDown(KeyCode.Q)) // ou novo Input System
+        {
+            GetComponent<AreaSkill>()?.Cast();
+            animator.SetTrigger("castSkillQ");
+        }
     }
 
     void FixedUpdate()
