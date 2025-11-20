@@ -11,14 +11,14 @@ public class EnemySleepAI2D : MonoBehaviour
     NavMeshAgent agent;
     [SerializeField] private Animator animator;
 
-    [Header("Detec��o")]
+    [Header("Detecção")]
     [SerializeField] float wakeRadius = 8f;
     [SerializeField] float sleepRadius = 12f;
     [SerializeField] LayerMask playerLayer;
     [SerializeField] bool requireLineOfSight = false;
     [SerializeField] LayerMask losObstacles2D;
 
-    [Header("Movimento e anima��o")]
+    [Header("Movimento e animação")]
     private Vector3 lastPosition;
     private Vector3 initialScale;
 
@@ -37,7 +37,6 @@ public class EnemySleepAI2D : MonoBehaviour
         }
 
         initialScale = transform.localScale;
-        // Removido agent.isStopped aqui para evitar erro: agente ainda não está em um NavMesh durante Awake.
     }
 
     void OnEnable()
@@ -48,7 +47,6 @@ public class EnemySleepAI2D : MonoBehaviour
             agent.Warp(hit.position);
         }
 
-        // Agora que já tentamos posicionar no NavMesh, podemos parar o agente se estivermos em estado Dormant
         SetAgentStopped(true);
 
         lastPosition = transform.position;
@@ -59,19 +57,34 @@ public class EnemySleepAI2D : MonoBehaviour
 
     void Update()
     {
-        // Detecta se est� se movendo (para animar)
-        float velocity = Vector3.Distance(transform.position, lastPosition) / Time.deltaTime;
-        bool isMoving = velocity > 0.01f && state == State.Chase;
+        // Usa a velocidade do NavMeshAgent (plano XZ) para animação e flip
+        Vector3 vel = Vector3.zero;
 
-        // Atualiza anima��es
+        if (agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            vel = agent.velocity;
+        }
+        else
+        {
+            // fallback: calcula por posição (caso o agente esteja parado/desligado)
+            vel = (transform.position - lastPosition) / Mathf.Max(Time.deltaTime, 0.0001f);
+        }
+
+        // Velocidade 2D considerando XZ (top-down 2D com NavMesh)
+        Vector2 vel2D = new Vector2(vel.x, vel.z);
+        float speed = vel2D.magnitude;
+
+        bool isMoving = speed > 0.05f && state == State.Chase;
         animator.SetBool("isRunning", isMoving);
 
-        // Flip do sprite (igual ao Player)
-        Vector3 dir = transform.position - lastPosition;
-        if (dir.x < -0.01f)
-            transform.localScale = new Vector3(-Mathf.Abs(initialScale.x), initialScale.y, initialScale.z);
-        else if (dir.x > 0.01f)
-            transform.localScale = new Vector3(Mathf.Abs(initialScale.x), initialScale.y, initialScale.z);
+        // Flip do sprite apenas se estiver se movendo horizontalmente
+        if (state == State.Chase && Mathf.Abs(vel2D.x) > 0.01f)
+        {
+            if (vel2D.x < 0f)
+                transform.localScale = new Vector3(-Mathf.Abs(initialScale.x), initialScale.y, initialScale.z);
+            else if (vel2D.x > 0f)
+                transform.localScale = new Vector3(Mathf.Abs(initialScale.x), initialScale.y, initialScale.z);
+        }
 
         lastPosition = transform.position;
     }
@@ -80,6 +93,7 @@ public class EnemySleepAI2D : MonoBehaviour
     {
         if (!target) return;
 
+        // Distância no plano XZ (NavMesh 2D usa XZ)
         Vector2 me = new Vector2(transform.position.x, transform.position.z);
         Vector2 tp = new Vector2(target.position.x, target.position.z);
         float dist = Vector2.Distance(me, tp);
@@ -145,7 +159,6 @@ public class EnemySleepAI2D : MonoBehaviour
 #if UNITY_2022_2_OR_NEWER
         if (!agent.isOnNavMesh) return;
 #else
-        // Para versões mais antigas sem isOnNavMesh público, tentamos uma checagem aproximada usando SamplePosition
         if (!NavMesh.SamplePosition(agent.transform.position, out var _, 0.1f, NavMesh.AllAreas)) return;
 #endif
         agent.isStopped = stopped;

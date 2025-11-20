@@ -5,12 +5,11 @@ using UnityEngine.SceneManagement;
 
 public class WaveSpawner : MonoBehaviour
 {
-
     public List<EnemyInWave> enemies = new List<EnemyInWave>();
     public int currWave;
     private int waveValue;
-    public List<GameObject> enemiesToSpawn = new List<GameObject>();
 
+    public List<GameObject> enemiesToSpawn = new List<GameObject>();
     public Transform[] spawnLocation;
     public int spawnIndex;
 
@@ -20,29 +19,47 @@ public class WaveSpawner : MonoBehaviour
     private float spawnTimer;
 
     public List<GameObject> spawnedEnemies = new List<GameObject>();
-    
-    [Header("Scene Load Settings")]
-    public float sceneLoadDelay = 3f; // delay after clearing all enemies
-    private bool loadingNextScene; // flag to avoid multiple triggers
 
-    // Coroutine reference (optional if you later want to cancel)
+    [Header("Scene Load Settings")]
+    public float sceneLoadDelay = 3f;
+    private bool loadingNextScene;
+
     private Coroutine loadSceneRoutine;
-    // Start is called before the first frame update
+
+    // ---------- NOVO: Delay antes de iniciar spawns ----------
+    [Header("Wave Start Delay")]
+    public float startDelay = 5f;    // tempo antes do primeiro spawn
+    private bool waveStarted = false;
+
     void Start()
     {
+        StartCoroutine(StartWaveAfterDelay());
+    }
+
+    private IEnumerator StartWaveAfterDelay()
+    {
+        yield return new WaitForSeconds(startDelay);
+
+        waveStarted = true;
         GenerateWave();
     }
 
-    // Update is called once per frame
     void FixedUpdate()
     {
+        if (!waveStarted) return;   // <-- TRAVA O SPAWN ATÉ PASSAR O DELAY
+
         if (spawnTimer <= 0)
         {
-            //spawn an enemy
+            // spawn an enemy
             if (enemiesToSpawn.Count > 0)
             {
-                GameObject enemy = (GameObject)Instantiate(enemiesToSpawn[0], spawnLocation[spawnIndex].position, Quaternion.identity); // spawn first enemy in our list
-                enemiesToSpawn.RemoveAt(0); // and remove it
+                GameObject enemy = (GameObject)Instantiate(
+                    enemiesToSpawn[0],
+                    spawnLocation[spawnIndex].position,
+                    Quaternion.identity
+                );
+
+                enemiesToSpawn.RemoveAt(0);
                 spawnedEnemies.Add(enemy);
                 spawnTimer = spawnInterval;
 
@@ -66,7 +83,7 @@ public class WaveSpawner : MonoBehaviour
             waveTimer -= Time.fixedDeltaTime;
         }
 
-        // Original wave progression retained only if we are NOT preparing to load the next scene
+        // if wave finished and no spawned enemies remain
         if (!loadingNextScene && waveTimer <= 0 && spawnedEnemies.Count <= 0)
         {
             currWave++;
@@ -79,23 +96,14 @@ public class WaveSpawner : MonoBehaviour
         waveValue = currWave * 10;
         GenerateEnemies();
 
-        spawnInterval = waveDuration / enemiesToSpawn.Count; // gives a fixed time between each enemies
-        waveTimer = waveDuration; // wave duration is read only
+        spawnInterval = waveDuration / enemiesToSpawn.Count;
+        waveTimer = waveDuration;
     }
 
     public void GenerateEnemies()
     {
-        // Create a temporary list of enemies to generate
-        // 
-        // in a loop grab a random enemy 
-        // see if we can afford it
-        // if we can, add it to our list, and deduct the cost.
-
-        // repeat... 
-
-        //  -> if we have no points left, leave the loop
-
         List<GameObject> generatedEnemies = new List<GameObject>();
+
         while (waveValue > 0 || generatedEnemies.Count < 50)
         {
             int randEnemyId = Random.Range(0, enemies.Count);
@@ -111,20 +119,18 @@ public class WaveSpawner : MonoBehaviour
                 break;
             }
         }
+
         enemiesToSpawn.Clear();
         enemiesToSpawn = generatedEnemies;
     }
 
-    // Called by EnemyHealth (via OnDestroy) when an enemy dies
     public void OnEnemyDeath(GameObject enemy)
     {
-        // Remove the enemy reference if still present
         if (spawnedEnemies.Contains(enemy))
         {
             spawnedEnemies.Remove(enemy);
         }
 
-        // Clean up any nulls that might remain (optional safety)
         for (int i = spawnedEnemies.Count - 1; i >= 0; i--)
         {
             if (spawnedEnemies[i] == null)
@@ -133,7 +139,6 @@ public class WaveSpawner : MonoBehaviour
             }
         }
 
-        // If no enemies remain AND we are not already waiting to load scene, start coroutine
         if (!loadingNextScene && spawnedEnemies.Count == 0 && enemiesToSpawn.Count == 0)
         {
             loadSceneRoutine = StartCoroutine(LoadSceneAfterDelay());
@@ -146,7 +151,6 @@ public class WaveSpawner : MonoBehaviour
         yield return new WaitForSeconds(sceneLoadDelay);
         SceneManager.LoadSceneAsync(3);
     }
-
 }
 
 [System.Serializable]
