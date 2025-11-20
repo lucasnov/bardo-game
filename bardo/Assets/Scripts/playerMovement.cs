@@ -11,6 +11,16 @@ public class playerMovement : MonoBehaviour
     Vector2 input;
     private Vector3 initialScale;
 
+    // Projectile
+    [Header("Projectile")]
+    public ProjectileBehaviour projectilePrefab;
+    public Transform LaunchOffset;
+    public AudioSource projectSound;
+
+    [Header("Projectile Cooldown")]
+    public float shootCooldown = 0.3f;   // tempo entre tiros (pode ajustar no Inspector)
+    private float nextShootTime = 0f;    // controle interno
+
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -48,7 +58,28 @@ public class playerMovement : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Q)) // ou novo Input System
         {
             GetComponent<AreaSkill>()?.Cast();
-            animator.SetTrigger("castSkillQ");
+        }
+
+        // Launch projectile with Space + cooldown
+        if (Input.GetKeyDown(KeyCode.Space) && Time.time >= nextShootTime)
+        {
+            nextShootTime = Time.time + shootCooldown;
+
+            if (projectSound != null)
+                projectSound.Play();
+
+            // Launch projectile from LaunchOffset position
+            var projectile = Instantiate(projectilePrefab, LaunchOffset.position, Quaternion.identity);
+
+            // Set projectile direction based on player facing direction
+            if (transform.localScale.x < 0)
+            {
+                projectile.transform.rotation = Quaternion.Euler(0, 0, 180); // Facing left
+            }
+            else
+            {
+                projectile.transform.rotation = Quaternion.Euler(0, 0, 0); // Facing right
+            }
         }
     }
 
