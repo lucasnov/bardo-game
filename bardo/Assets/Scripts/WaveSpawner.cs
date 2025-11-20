@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class WaveSpawner : MonoBehaviour
 {
@@ -19,6 +20,13 @@ public class WaveSpawner : MonoBehaviour
     private float spawnTimer;
 
     public List<GameObject> spawnedEnemies = new List<GameObject>();
+    
+    [Header("Scene Load Settings")]
+    public float sceneLoadDelay = 3f; // delay after clearing all enemies
+    private bool loadingNextScene; // flag to avoid multiple triggers
+
+    // Coroutine reference (optional if you later want to cancel)
+    private Coroutine loadSceneRoutine;
     // Start is called before the first frame update
     void Start()
     {
@@ -58,7 +66,8 @@ public class WaveSpawner : MonoBehaviour
             waveTimer -= Time.fixedDeltaTime;
         }
 
-        if (waveTimer <= 0 && spawnedEnemies.Count <= 0)
+        // Original wave progression retained only if we are NOT preparing to load the next scene
+        if (!loadingNextScene && waveTimer <= 0 && spawnedEnemies.Count <= 0)
         {
             currWave++;
             GenerateWave();
@@ -104,6 +113,38 @@ public class WaveSpawner : MonoBehaviour
         }
         enemiesToSpawn.Clear();
         enemiesToSpawn = generatedEnemies;
+    }
+
+    // Called by EnemyHealth (via OnDestroy) when an enemy dies
+    public void OnEnemyDeath(GameObject enemy)
+    {
+        // Remove the enemy reference if still present
+        if (spawnedEnemies.Contains(enemy))
+        {
+            spawnedEnemies.Remove(enemy);
+        }
+
+        // Clean up any nulls that might remain (optional safety)
+        for (int i = spawnedEnemies.Count - 1; i >= 0; i--)
+        {
+            if (spawnedEnemies[i] == null)
+            {
+                spawnedEnemies.RemoveAt(i);
+            }
+        }
+
+        // If no enemies remain AND we are not already waiting to load scene, start coroutine
+        if (!loadingNextScene && spawnedEnemies.Count == 0 && enemiesToSpawn.Count == 0)
+        {
+            loadSceneRoutine = StartCoroutine(LoadSceneAfterDelay());
+        }
+    }
+
+    private IEnumerator LoadSceneAfterDelay()
+    {
+        loadingNextScene = true;
+        yield return new WaitForSeconds(sceneLoadDelay);
+        SceneManager.LoadSceneAsync(3);
     }
 
 }

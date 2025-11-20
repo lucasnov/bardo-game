@@ -11,14 +11,14 @@ public class EnemySleepAI2D : MonoBehaviour
     NavMeshAgent agent;
     [SerializeField] private Animator animator;
 
-    [Header("Detecção")]
+    [Header("Detecï¿½ï¿½o")]
     [SerializeField] float wakeRadius = 8f;
     [SerializeField] float sleepRadius = 12f;
     [SerializeField] LayerMask playerLayer;
     [SerializeField] bool requireLineOfSight = false;
     [SerializeField] LayerMask losObstacles2D;
 
-    [Header("Movimento e animação")]
+    [Header("Movimento e animaï¿½ï¿½o")]
     private Vector3 lastPosition;
     private Vector3 initialScale;
 
@@ -37,7 +37,7 @@ public class EnemySleepAI2D : MonoBehaviour
         }
 
         initialScale = transform.localScale;
-        agent.isStopped = true; // começa dormindo
+        // Removido agent.isStopped aqui para evitar erro: agente ainda nÃ£o estÃ¡ em um NavMesh durante Awake.
     }
 
     void OnEnable()
@@ -48,6 +48,9 @@ public class EnemySleepAI2D : MonoBehaviour
             agent.Warp(hit.position);
         }
 
+        // Agora que jÃ¡ tentamos posicionar no NavMesh, podemos parar o agente se estivermos em estado Dormant
+        SetAgentStopped(true);
+
         lastPosition = transform.position;
         InvokeRepeating(nameof(SenseLoop), 0f, 0.2f);
     }
@@ -56,11 +59,11 @@ public class EnemySleepAI2D : MonoBehaviour
 
     void Update()
     {
-        // Detecta se está se movendo (para animar)
+        // Detecta se estï¿½ se movendo (para animar)
         float velocity = Vector3.Distance(transform.position, lastPosition) / Time.deltaTime;
         bool isMoving = velocity > 0.01f && state == State.Chase;
 
-        // Atualiza animações
+        // Atualiza animaï¿½ï¿½es
         animator.SetBool("isRunning", isMoving);
 
         // Flip do sprite (igual ao Player)
@@ -115,7 +118,7 @@ public class EnemySleepAI2D : MonoBehaviour
     void StartChase()
     {
         state = State.Chase;
-        agent.isStopped = false;
+        SetAgentStopped(false);
         if (agent.enabled && agent.isOnNavMesh && target)
             agent.SetDestination(target.position);
         animator.SetBool("isRunning", true);
@@ -124,7 +127,7 @@ public class EnemySleepAI2D : MonoBehaviour
     void GoDormant()
     {
         state = State.Dormant;
-        agent.isStopped = true;
+        SetAgentStopped(true);
         animator.SetBool("isRunning", false);
     }
 
@@ -132,5 +135,19 @@ public class EnemySleepAI2D : MonoBehaviour
     {
         Gizmos.color = Color.green; Gizmos.DrawWireSphere(transform.position, wakeRadius);
         Gizmos.color = Color.red; Gizmos.DrawWireSphere(transform.position, sleepRadius);
+    }
+
+    // Helper para evitar exceÃ§Ã£o "Stop can only be called on an active agent that has been placed on a NavMesh"
+    private void SetAgentStopped(bool stopped)
+    {
+        if (agent == null) return;
+        if (!agent.enabled) return;
+#if UNITY_2022_2_OR_NEWER
+        if (!agent.isOnNavMesh) return;
+#else
+        // Para versÃµes mais antigas sem isOnNavMesh pÃºblico, tentamos uma checagem aproximada usando SamplePosition
+        if (!NavMesh.SamplePosition(agent.transform.position, out var _, 0.1f, NavMesh.AllAreas)) return;
+#endif
+        agent.isStopped = stopped;
     }
 }

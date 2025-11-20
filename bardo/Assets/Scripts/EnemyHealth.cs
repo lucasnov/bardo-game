@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class EnemyHealth : MonoBehaviour, IDamageable
 {
@@ -12,8 +13,21 @@ public class EnemyHealth : MonoBehaviour, IDamageable
         currentHP -= amount;
         if (currentHP <= 0f)
         {
-            // morrer / destruir / tocar animação
+            // morrer / destruir / tocar animaï¿½ï¿½o
             Destroy(gameObject);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // Avoid running during editor recompiles or scene unloads
+        if (!Application.isPlaying) return;
+
+        // Notify WaveSpawner that this enemy has died
+        WaveSpawner spawner = FindObjectOfType<WaveSpawner>();
+        if (spawner != null)
+        {
+            spawner.OnEnemyDeath(gameObject);
         }
     }
 }
