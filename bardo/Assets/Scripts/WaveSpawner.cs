@@ -46,7 +46,7 @@ public class WaveSpawner : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (!waveStarted) return;   // <-- TRAVA O SPAWN ATÉ PASSAR O DELAY
+        if (!waveStarted) return;   // <-- TRAVA O SPAWN ATï¿½ PASSAR O DELAY
 
         if (spawnTimer <= 0)
         {
@@ -149,7 +149,7 @@ public class WaveSpawner : MonoBehaviour
     {
         loadingNextScene = true;
         yield return new WaitForSeconds(sceneLoadDelay);
-        SceneManager.LoadSceneAsync(3);
+        SceneManager.LoadSceneAsync(SceneManager.GetActiveScene().buildIndex + 1);
     }
 }
 

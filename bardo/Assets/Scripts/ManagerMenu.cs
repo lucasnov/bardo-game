@@ -10,7 +10,7 @@ public class ManagerMenu : MonoBehaviour
 {
     public GameObject pauseMenu;
     public bool isPaused = false;
-    // Propriedade helper para verificar se o menu existe nesta cena
+    
     public bool HasPauseMenu => pauseMenu != null;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -82,6 +82,7 @@ public class ManagerMenu : MonoBehaviour
     {
         if (!HasPauseMenu)
         {
+
             // Mesmo sem menu, garantimos que o tempo esteja rodando
             Time.timeScale = 1f;
             isPaused = false;
